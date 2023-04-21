@@ -16,6 +16,6 @@
 
 2) cd currency_converter
 
-3)docker-compose up  --build
+3) docker-compose up  --build
 
-4)Переходим на страницу http://localhost:8000/docs и можно тестировать
+4) Переходим на страницу http://localhost:8000/docs и можно тестировать
