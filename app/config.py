@@ -9,4 +9,4 @@ DB_PORT = os.environ.get("DB_PORT")
 DB_NAME = os.environ.get("DB_NAME")
 DB_USER = os.environ.get("DB_USER")
 DB_PASS = os.environ.get("DB_PASS")
-url = os.environ.get("url")
+url = 'https://openexchangerates.org/api/latest.json?app_id=d2303867ed794c0e8a1fee028a772992'
