@@ -1,7 +1,8 @@
+import asyncio
 from datetime import datetime
 
 import aiohttp as aiohttp
-from celery import Celery
+
 from dependency_injector.wiring import inject
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -12,30 +13,32 @@ from app.database import get_db
 from app.endpoint.models import CurrencyRate
 from app.endpoint.schemas import CurrencyRateResponse, CurrencyRatesResponse
 
-celery = Celery('tasks', broker=f'redis://localhost:6379')
-
 router = APIRouter()
-@celery.task
-async def update_currency_rates(db: AsyncSession = Depends(get_db)):
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
-        async with session.get(url) as response:
-            data = await response.json()
-            timestamp = datetime.utcfromtimestamp(data['timestamp'])
-            rates = data['rates']
 
-            existing_rates = select(CurrencyRate)
 
-            room = await db.execute(existing_rates)
-            existing_rates_dict = {rate.currency_code: rate for rate in room.scalars()}
+async def update_currency_rates():
+    while True:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                timestamp = datetime.utcfromtimestamp(data['timestamp'])
+                rates = data['rates']
 
-            for code, rate in rates.items():
-                if code in existing_rates_dict:
-                    existing_rates_dict[code].rate = rate
-                else:
-                    currency_rate = CurrencyRate(currency_code=code, rate=rate, updated_at=timestamp)
-                    db.add(currency_rate)
+                async with get_db() as db:
+                    existing_rates = select(CurrencyRate)
+                    room = await db.execute(existing_rates)
+                    existing_rates_dict = {rate.currency_code: rate for rate in room.scalars()}
 
-            await db.commit()
+                    for code, rate in rates.items():
+                        if code in existing_rates_dict:
+                            existing_rates_dict[code].rate = rate
+                        else:
+                            currency_rate = CurrencyRate(currency_code=code, rate=rate, updated_at=timestamp)
+                            db.add(currency_rate)
+                    print(1)
+                    await db.commit()
+            await asyncio.sleep(10)
+
 
 
 @router.get('/convert_currency')
